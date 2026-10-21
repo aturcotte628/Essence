@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Essence — Prix de l'essence au Québec</title>
+<meta name="description" content="Carte des stations-service du Québec avec les prix de l'essence et du diesel, mis à jour aux 15 minutes.">
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root{--bg:#f6f7f9;--panel:#fff;--ink:#16202b;--mut:#5d6b7a;--line:#e1e5ea;--accent:#0b63c5;--good:#1a9850;--mid:#e0a800;--bad:#d73027}
+  @media (prefers-color-scheme:dark){:root{--bg:#10151b;--panel:#18202a;--ink:#e8edf2;--mut:#93a1b0;--line:#2a3541;--accent:#5aa2f0}}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);display:grid;grid-template-columns:360px 1fr;grid-template-rows:100%}
+  aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{font-size:18px;margin:0 0 2px;letter-spacing:-.01em}
+  .sub{color:var(--mut);font-size:12px}
+  .controls{padding:10px 16px;display:grid;gap:8px;border-bottom:1px solid var(--line)}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:transparent;color:var(--ink);padding:8px 4px;font:inherit;cursor:pointer}
+  .seg button[aria-pressed=true]{background:var(--accent);color:#fff;font-weight:600}
+  .row{display:flex;gap:8px}
+  input.pc{flex:1;min-width:0;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);text-transform:uppercase}
+  input.pc:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  .pcerr{color:var(--bad);font-size:12px;display:none}
+  select,.btn{flex:1;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);min-width:0}
+  .btn{cursor:pointer;text-align:center}
+  .btn:hover,select:hover{border-color:var(--accent)}
+  #list{overflow:auto;flex:1;margin:0;padding:0;list-style:none}
+  #list li{padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:2px 10px}
+  #list li:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+  .nm{font-weight:600}.ad{color:var(--mut);font-size:12px;grid-column:1}
+  .pr{grid-row:1/3;grid-column:2;align-self:center;font-weight:700;font-size:16px;border-radius:6px;padding:2px 8px;color:#fff;font-variant-numeric:tabular-nums}
+  .empty{padding:20px 16px;color:var(--mut)}
+  .loyal{padding:8px 16px;border-top:1px solid var(--line)}
+  .loyal .btn{width:100%}
+  dialog#loyalty{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+  dialog#loyalty::backdrop{background:rgba(0,0,0,.5)}
+  dialog#loyalty .dh{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+  dialog#loyalty h2{margin:0;font-size:16px}
+  dialog#loyalty .x{border:0;background:transparent;color:var(--ink);font-size:22px;line-height:1;cursor:pointer;padding:2px 8px}
+  dialog#loyalty .db{padding:4px 16px 14px;overflow:auto;max-height:calc(100vh - 120px)}
+  .lp{padding:10px 0;border-bottom:1px solid var(--line)}.lp:last-of-type{border-bottom:0}
+  .lp b{font-size:14px}.lp .pn{color:var(--accent);font-weight:600;margin-left:6px}
+  .lp .ct{color:var(--mut);font-size:12px;margin-left:6px}
+  .lp ul{margin:4px 0 0;padding-left:18px}.lp li{margin:2px 0}
+  .lnote{color:var(--mut);font-size:12px;margin-top:8px}
+  footer{padding:8px 16px;border-top:1px solid var(--line);color:var(--mut);font-size:11px}
+  footer a{color:var(--accent)}
+  #map{height:100%;width:100%}
+  #nokey{display:none;place-items:center;height:100%;padding:24px;text-align:center;color:var(--mut)}
+  .legend{margin:10px;display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px;box-shadow:0 2px 8px rgba(0,0,0,.25);font:13px/1.2 system-ui,sans-serif;color:var(--ink)}
+  .legend button{border:2px solid transparent;background:transparent;color:inherit;font:inherit;border-radius:7px;padding:5px 9px;cursor:pointer;text-align:center;min-width:64px}
+  .legend button:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .legend button[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .legend .lb{display:block;font-size:11px;color:var(--mut)}
+  .legend .lb i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0}
+  .legend .lv{display:block;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+  .iw{font:13px/1.4 system-ui,sans-serif;color:#16202b;min-width:200px}
+  .iw b{font-size:14px}.iw table{border-collapse:collapse;margin:6px 0}.iw td{padding:1px 10px 1px 0}.iw td:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+  .iw a{color:#0b63c5}
+  .hist{margin-top:8px;border-top:1px solid #e1e5ea;padding-top:6px}
+  .hist .ht{font-weight:600;margin-bottom:2px}
+  .hist .tabs{display:flex;gap:4px;margin:4px 0}
+  .hist .tabs button{flex:1;border:1px solid #cfd6de;background:#fff;color:#16202b;border-radius:6px;padding:3px 0;font:inherit;font-size:12px;cursor:pointer}
+  .hist .tabs button[aria-pressed=true]{background:#0b63c5;border-color:#0b63c5;color:#fff}
+  .hist svg{display:block;width:100%;height:auto}
+  .hist .sum{font-size:12px;color:#5d6b7a;margin-top:2px}.hist .up{color:#d73027;font-weight:700}.hist .dn{color:#1a9850;font-weight:700}
+  @media (max-width:760px){
+    body{grid-template-columns:1fr;grid-template-rows:55% 45%}
+    #mapwrap{order:-1}aside{border-right:0;border-top:1px solid var(--line)}
+    header{padding:8px 12px}.controls{padding:8px 12px}#list li{padding:8px 12px}
+  }
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1 data-i="title">Essence Québec</h1>
+    <div class="sub" id="status">…</div>
+  </header>
+  <div class="controls">
+    <div class="seg" id="fuel" role="group">
+      <button data-fuel="regular" aria-pressed="true" data-i="regular">Régulier</button>
+      <button data-fuel="super" aria-pressed="false" data-i="super">Super</button>
+      <button data-fuel="diesel" aria-pressed="false" data-i="diesel">Diesel</button>
+    </div>
+    <div class="row">
+      <select id="brand" aria-label="Bannière"></select>
+      <select id="sort" aria-label="Tri">
+        <option value="price" data-i="sortPrice">Prix le plus bas</option>
+        <option value="dist" data-i="sortDist">Plus proche</option>
+      </select>
+    </div>
+    <form class="row" id="pcform" autocomplete="off">
+      <input class="pc" id="pc" type="text" inputmode="text" maxlength="7" placeholder="Code postal (ex. G1R 4P5)" data-ph="pcPlaceholder" aria-label="Code postal">
+      <button class="btn" id="pcgo" type="submit" style="flex:0 0 auto" data-i="pcGo">Chercher</button>
+    </form>
+    <div class="pcerr" id="pcerr" role="alert"></div>
+    <div class="row">
+      <button class="btn" id="near" data-i="near">📍 Près de moi</button>
+      <button class="btn" id="lang">EN</button>
+    </div>
+  </div>
+  <ul id="list"></ul>
+  <div class="loyal"><button class="btn" id="loyalBtn" type="button" data-i="loyalBtn">🎁 Programmes de fidélité</button></div>
+  <footer>
+    <span data-i="source">Données : Régie de l'énergie du Québec via</span>
+    <a href="https://regieessencequebec.ca/" target="_blank" rel="noopener">regieessencequebec.ca</a>.
+    <span data-i="disclaimer">Site non officiel; les prix peuvent différer à la pompe.</span>
+  </footer>
+</aside>
+<dialog id="loyalty" aria-labelledby="loyalTitle">
+  <div class="dh"><h2 id="loyalTitle" data-i="loyalTitle">Programmes de fidélité et rabais</h2><button class="x" id="loyalClose" type="button" aria-label="Fermer">×</button></div>
+  <div class="db" id="loyalBody"></div>
+</dialog>
+<div id="mapwrap"><div id="map"></div>
+  <div class="legend" id="legend" role="group" aria-label="Prix dans la zone affichée" style="display:none">
+    <button data-tier="low" aria-pressed="false"><span class="lb"><i style="background:#1a9850"></i><span data-i="tierLow">Bas</span></span><span class="lv">—</span></button>
+    <button data-tier="mid" aria-pressed="false"><span class="lb"><i style="background:#e0a800"></i><span data-i="tierMid">Médian</span></span><span class="lv">—</span></button>
+    <button data-tier="high" aria-pressed="false"><span class="lb"><i style="background:#d73027"></i><span data-i="tierHigh">Élevé</span></span><span class="lv">—</span></button>
+  </div>
+  <div id="nokey"><div><b>Google Maps key missing</b><br>Set GOOGLE_MAPS_KEY for the essence service.</div></div></div>
+
+<script src="https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js"></script>
+<script>
+const KEY = {{ maps_key|tojson }};
+const I18N = {
+  fr:{title:"Essence Québec",regular:"Régulier",super:"Super",diesel:"Diesel",sortPrice:"Prix le plus bas",sortDist:"Plus proche",near:"📍 Près de moi",
+      allBrands:"Toutes les bannières",source:"Données : Régie de l'énergie du Québec via",disclaimer:"Site non officiel; les prix peuvent différer à la pompe.",
+      updated:"Mis à jour",stations:"stations",none:"Aucune station dans cette zone.",directions:"Itinéraire",noPrice:"—",geoFail:"Position indisponible.",avg:"moy.",
+      tierLow:"Bas",tierMid:"Médian",tierHigh:"Élevé",legendLabel:"Prix dans la zone affichée (¢/L)",
+      histTitle:"Historique, 30 jours",histNone:"Pas d'historique pour cette station.",histFlat:"Prix stable",histLoading:"Chargement…",histLow:"min",histSince:"Suivi depuis le",histHigh:"max",
+      loyalBtn:"🎁 Programmes de fidélité",loyalTitle:"Programmes de fidélité et rabais",close:"Fermer",
+      loyalNote:"Informations compilées en octobre 2026 à partir de sources publiques; les taux changent souvent. Vérifiez auprès de l'enseigne avant de compter dessus. Valeurs par litre approximatives.",
+      pcPlaceholder:"Code postal (ex. G1R 4P5)",pcLabel:"Code postal",pcGo:"Chercher",geoInsecure:"Géolocalisation indisponible (page non sécurisée).",geoDenied:"Accès à la position refusé. Autorisez-le dans le navigateur ou entrez un code postal.",pcInvalid:"Code postal invalide (ex. G1R 4P5).",pcNotFound:"Code postal introuvable."},
+  en:{title:"Quebec Gas Prices",regular:"Regular",super:"Super",diesel:"Diesel",sortPrice:"Lowest price",sortDist:"Closest",near:"📍 Near me",
+      allBrands:"All brands",source:"Data: Régie de l'énergie du Québec via",disclaimer:"Unofficial site; pump prices may differ.",
+      updated:"Updated",stations:"stations",none:"No stations in this area.",directions:"Directions",noPrice:"—",geoFail:"Location unavailable.",avg:"avg",
+      tierLow:"Low",tierMid:"Median",tierHigh:"High",legendLabel:"Prices in the visible area (¢/L)",
+      histTitle:"Price history, 30 days",histNone:"No history for this station.",histFlat:"Price unchanged",histLoading:"Loading…",histLow:"low",histSince:"Tracking since",histHigh:"high",
+      loyalBtn:"🎁 Loyalty programs",loyalTitle:"Loyalty programs and rebates",close:"Close",
+      loyalNote:"Compiled in October 2026 from public sources; rates change often. Check with the brand before relying on them. Per-litre values are approximate.",
+      pcPlaceholder:"Postal code (e.g. G1R 4P5)",pcLabel:"Postal code",pcGo:"Search",geoInsecure:"Geolocation unavailable (insecure page).",geoDenied:"Location access denied. Allow it in your browser or enter a postal code.",pcInvalid:"Invalid postal code (e.g. G1R 4P5).",pcNotFound:"Postal code not found."}
+};
+// French by default; English only if the visitor explicitly switched to it.
+let lang = "fr";
+try { if(localStorage.getItem("lang") === "en") lang = "en"; } catch(e){}
+const t = k => I18N[lang][k] || k;
+
+let map, clusterer, info, stations = [], markers = new Map(), fuel = "regular", brand = "", sortBy = "price", me = null, meta = {};
+let q = {lo:0, hi:0}; // price thresholds for the selected fuel, computed from the stations in view
+let tierFilter = "";   // "", "low", "mid" or "high"
+let stats = null;      // {min, med, max} of the stations in view
+const iconCache = new Map();
+
+const $ = s => document.querySelector(s);
+const fmt = v => v == null ? t("noPrice") : v.toFixed(1);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  renderLoyalty();
+  document.querySelectorAll("[data-i]").forEach(e => e.textContent = t(e.dataset.i));
+  document.querySelectorAll("[data-ph]").forEach(e => { e.placeholder = t(e.dataset.ph); e.setAttribute("aria-label", t("pcLabel")); });
+  $("#lang").textContent = lang === "fr" ? "EN" : "FR";
+  fillBrands(); renderStatus();
+}
+function renderStatus(){
+  if(!stations.length){ $("#status").textContent = "…"; return; }
+  const d = meta.generated_at ? new Date(meta.generated_at) : null;
+  $("#status").textContent = `${stations.length} ${t("stations")}` + (d ? ` · ${t("updated")} ${d.toLocaleString(lang==="fr"?"fr-CA":"en-CA",{dateStyle:"short",timeStyle:"short"})}` : "");
+}
+function fillBrands(){
+  const sel = $("#brand"), cur = brand;
+  const counts = {};
+  stations.forEach(s => { if(s.prices[fuel]) counts[s.brand||"?"] = (counts[s.brand||"?"]||0)+1; });
+  const names = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  sel.innerHTML = `<option value="">${t("allBrands")}</option>` + names.map(n=>`<option value="${esc(n)}">${esc(n)} (${counts[n]})</option>`).join("");
+  sel.value = names.includes(cur) ? cur : ""; brand = sel.value;
+}
+function thresholds(){
+  const b = map && map.getBounds();
+  const v = stations.filter(s => s.prices[fuel] && (!brand||s.brand===brand) && (!b || b.contains({lat:s.lat,lng:s.lon}))).map(s=>s.prices[fuel]).sort((a,b)=>a-b);
+  if(!v.length){ q = {lo:0,hi:0}; stats = null; return; }
+  const n = v.length;
+  q = n < 5 ? {lo:v[0], hi:v[n-1]} : {lo:v[Math.floor(n*.2)], hi:v[Math.floor(n*.8)]};
+  stats = {min:v[0], med:n%2 ? v[(n-1)/2] : (v[n/2-1]+v[n/2])/2, max:v[n-1]};
+}
+const tierOf = p => p<=q.lo ? "low" : p>=q.hi ? "high" : "mid";
+function renderLegend(){
+  const vals = {low:stats&&stats.min, mid:stats&&stats.med, high:stats&&stats.max};
+  document.querySelectorAll("#legend button").forEach(b => {
+    b.querySelector(".lv").textContent = vals[b.dataset.tier]==null ? t("noPrice") : vals[b.dataset.tier].toFixed(1);
+    b.setAttribute("aria-pressed", b.dataset.tier === tierFilter);
+  });
+  $("#legend").setAttribute("aria-label", t("legendLabel"));
+}
+function color(p){
+  if(p==null) return "#8a96a3";
+  if(p<=q.lo) return "#1a9850";
+  if(p>=q.hi) return "#d73027";
+  return "#e0a800";
+}
+function pin(p){
+  const c = color(p), txt = p==null ? "" : p.toFixed(1), key = c+txt;
+  if(iconCache.has(key)) return iconCache.get(key);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="58" height="34"><path d="M4 2h50a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H35l-6 7-6-7H4a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z" fill="${c}" stroke="#fff" stroke-width="1.5"/><text x="29" y="19" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#fff">${txt}</text></svg>`;
+  const icon = {url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg), scaledSize:new google.maps.Size(58,34), anchor:new google.maps.Point(29,33)};
+  iconCache.set(key, icon); return icon;
+}
+function km(a,b){
+  const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lon-a.lon);
+  const h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function popup(s){
+  const rows = ["regular","super","diesel"].map(f=>`<tr><td>${t(f)}</td><td>${s.prices[f]!=null?fmt(s.prices[f])+" ¢/L":t("noPrice")}</td></tr>`).join("");
+  const dir = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+  return `<div class="iw"><b>${esc(s.brand||s.name)}</b><div>${esc(s.address)}</div><table>${rows}</table><a href="${dir}" target="_blank" rel="noopener">${t("directions")} ↗</a></div>`;
+}
+const PROGRAMS = [
+  {b:"Esso / Mobil", p:"PC Optimum", fr:["10 pts/L et 10 pts/$ en boutique","4 000 pts = 10 ¢/L de rabais (max 40 L); ≈ 1 ¢/L","Carte PC Mastercard : 30 pts/L et plus; World Elite : jusqu'à 70 pts/L"], en:["10 pts/L and 10 pts/$ in store","4,000 pts = 10¢/L off (up to 40 L); about 1¢/L","PC Mastercard: 30+ pts/L; World Elite: up to 70 pts/L"]},
+  {b:"Petro-Canada", p:"Petro-Points", fr:["10 pts/L et 10 pts/$ en boutique (application requise)","1 000 pts = 1 $; ≈ 1 ¢/L","Lien RBC : 3 ¢/L de rabais et 20 % de points en plus","Lien Triangle : 20 % de points en plus et jusqu'à 3 ¢/L en Argent CT","Platine (1 000 L par trimestre) : 15 pts/L","Mardi, plein de 25 L et plus : 2 $ en Argent CT (jusqu'au 29 déc. 2026)"], en:["10 pts/L and 10 pts/$ in store (app required)","1,000 pts = $1; about 1¢/L","RBC link: 3¢/L off and 20% more points","Triangle link: 20% more points and up to 3¢/L in CT Money","Platinum (1,000 L per quarter): 15 pts/L","Tuesdays, fill of 25 L+: $2 CT Money (until Dec 29, 2026)"]},
+  {b:"Shell", p:"Scène+ (appli Shell Go+)", fr:["1 pt/L et 1 pt/$ en boutique","1 000 pts = 10 $; ≈ 1 ¢/L","Lien Go+ : +10 % de points (double sur V-Power)","Membres CAA-Québec : 3 ¢/L de rabais","Cartes Scotia/Tangerine : jusqu'à 10 ¢/L au total","Remplace Air Miles depuis le 26 mai 2026"], en:["1 pt/L and 1 pt/$ in store","1,000 pts = $10; about 1¢/L","Go+ link: +10% points (double on V-Power)","CAA-Québec members: 3¢/L off","Scotia/Tangerine cards: up to 10¢/L in total","Replaced Air Miles on May 26, 2026"]},
+  {b:"Ultramar", p:"Journie", fr:["1 pt/L et 2 pts/$ en boutique","300 pts = 7 ¢/L de rabais (max 100 L, utilisable 30 jours)","Carte CIBC : 3 ¢/L de rabais à chaque plein","Les Ultramar rattachés à un Couche-Tard ne participent pas"], en:["1 pt/L and 2 pts/$ in store","300 pts = 7¢/L off (up to 100 L, within 30 days)","CIBC card: 3¢/L off on every fill","Ultramar stations attached to a Couche-Tard don't participate"]},
+  {b:"Harnois", p:"Proxi Extra", fr:["Jusqu'à 15 pts/L (stations avec dépanneur Proxi)","1 000 pts = 1 $; ≈ 1,5 ¢/L","Carte Énergies Express (entreprises) : jusqu'à 10 ¢/L"], en:["Up to 15 pts/L (stations with a Proxi store)","1,000 pts = $1; about 1.5¢/L","Énergies Express card (businesses): up to 10¢/L"]},
+  {b:"Irving", p:"Irving Rewards", fr:["3 ¢/L de rabais pour chaque tranche cumulative de 150 L"], en:["3¢/L off for every cumulative 150 L"]},
+  {b:"Sonic", p:"Mes Récompenses Sonic", fr:["10 pts/$ d'essence (15 pour les professionnels)","1 000 pts = 1,50 $","Points accumulés seulement en payant à l'intérieur","1 000 pts de bienvenue à l'activation"], en:["10 pts/$ of gas (15 for professionals)","1,000 pts = $1.50","Points earned only when paying inside","1,000 welcome points on activation"]},
+  {b:"Canadian Tire", p:"Triangle", fr:["Carte Triangle World Elite : 5 ¢/L (ordinaire) ou 7 ¢/L (super) en Argent CT","Utilisable aux stations Canadian Tire et Petro-Canada participantes"], en:["Triangle World Elite card: 5¢/L (regular) or 7¢/L (super) in CT Money","Usable at Canadian Tire and participating Petro-Canada stations"]},
+  {b:"Eko", p:"Milliplein", fr:["10 pts/L","1 000 pts = 1 $; ≈ 1 ¢/L","Selon une source, Milliplein serait lié à Couche-Tard (à confirmer)"], en:["10 pts/L","1,000 pts = $1; about 1¢/L","One source ties Milliplein to Couche-Tard (unconfirmed)"]},
+  {b:"Costco", p:"", fr:["Aucun programme; prix à la pompe généralement bas","Mastercard CIBC Costco : 3 % remise en argent sur l'essence"], en:["No program; pump prices are usually low","CIBC Costco Mastercard: 3% cash back on gas"]},
+  {b:"Couche-Tard", p:"", fr:["Aucun programme (partenariat CAA-Québec terminé en 2024)","Promotions ponctuelles seulement"], en:["No program (CAA-Québec partnership ended in 2024)","Occasional promotions only"]},
+  {b:"Crevier", p:"", fr:["Aucun programme trouvé (vendu à Parkland en 2021)"], en:["No program found (sold to Parkland in 2021)"]}
+];
+function renderLoyalty(){
+  $("#loyalBody").innerHTML = PROGRAMS.map(x => `<div class="lp"><b>${esc(x.b)}</b>${x.p?`<span class="pn">${esc(x.p)}</span>`:""}<ul>${x[lang].map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div>`).join("") + `<div class="lnote">${esc(t("loyalNote"))}</div>`;
+  $("#loyalClose").setAttribute("aria-label", t("close"));
+}
+const histCache = new Map();
+const DAY = 86400;
+function chartSvg(pts, since, now){
+  // step chart: price holds until the next change
+  const W=250,H=120,L=36,R=8,T=8,B=20, x=ts=>L+(Math.max(ts,since)-since)/(now-since)*(W-L-R);
+  const ps = pts.map(p=>p[1]); let lo=Math.min(...ps), hi=Math.max(...ps);
+  const pad = Math.max((hi-lo)*.2, 1); lo-=pad; hi+=pad;
+  const y = v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let d = `M${x(pts[0][0]).toFixed(1)} ${y(pts[0][1]).toFixed(1)}`;
+  for(let i=1;i<pts.length;i++) d += `H${x(pts[i][0]).toFixed(1)}V${y(pts[i][1]).toFixed(1)}`;
+  d += `H${x(now).toFixed(1)}`;
+  const last = pts[pts.length-1][1], first = pts[0][1];
+  const col = last>first ? "#d73027" : last<first ? "#1a9850" : "#0b63c5";
+  const grid = [lo+pad, hi-pad].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#e1e5ea"/><text x="${L-4}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#5d6b7a">${v.toFixed(1)}</text>`).join("");
+  const loc = lang==="fr"?"fr-CA":"en-CA", fmtD = ts=>new Date(ts*1000).toLocaleDateString(loc,{day:"numeric",month:"short"});
+  const ticks = [0,.5,1].map((f,i)=>`<text x="${L+f*(W-L-R)}" y="${H-5}" text-anchor="${i==0?"start":i==2?"end":"middle"}" font-size="10" fill="#5d6b7a">${fmtD(since+f*(now-since))}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${grid}<path d="${d}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${x(now)}" cy="${y(last)}" r="4" fill="${col}" stroke="#fff" stroke-width="1.5"/>${ticks}</svg>`;
+}
+function histView(box, data, f){
+  const pts = (data.series[f]||[]).map(p=>[p[0],p[1]]);
+  const tabs = ["regular","super","diesel"].filter(k=>(data.series[k]||[]).length).map(k=>`<button data-f="${k}" aria-pressed="${k===f}">${t(k)}</button>`).join("");
+  let body;
+  if(!pts.length) body = `<div class="sum">${t("histNone")}</div>`;
+  else {
+    const first = pts[0][1], last = pts[pts.length-1][1], diff = last-first, ps = pts.map(p=>p[1]);
+    const sum = Math.abs(diff)<0.05 ? t("histFlat") : `<span class="${diff>0?"up":"dn"}">${diff>0?"▲ +":"▼ "}${diff.toFixed(1)} ¢</span>`;
+    body = chartSvg(pts, data.since, data.now) + `<div class="sum">${sum} · ${t("histLow")} ${Math.min(...ps).toFixed(1)} · ${t("histHigh")} ${Math.max(...ps).toFixed(1)} ¢/L</div>` + (pts[0][0] > data.since + DAY ? `<div class="sum">${t("histSince")} ${new Date(pts[0][0]*1000).toLocaleDateString(lang==="fr"?"fr-CA":"en-CA",{day:"numeric",month:"short"})}</div>` : "");
+  }
+  box.innerHTML = `<div class="ht">${t("histTitle")}</div><div class="tabs">${tabs}</div>${body}`;
+  box.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>histView(box,data,b.dataset.f));
+}
+async function loadHistory(s, box){
+  const key = `${s.lat},${s.lon},${s.address}`;
+  try{
+    if(!histCache.has(key)){
+      const r = await fetch(`/api/history?lat=${s.lat}&lon=${s.lon}&a=${encodeURIComponent(s.address)}`);
+      histCache.set(key, await r.json());
+    }
+    const data = histCache.get(key);
+    if(!Object.keys(data.series).length){ box.remove(); return; }
+    histView(box, data, data.series[fuel] ? fuel : Object.keys(data.series)[0]);
+  }catch(e){ box.remove(); }
+}
+function open(s){
+  const m = markers.get(s.id); if(!m) return;
+  const el = document.createElement("div"); el.innerHTML = popup(s);
+  if(s.brand === "Petro-Canada"){
+    const box = document.createElement("div"); box.className = "hist"; box.textContent = t("histLoading");
+    el.querySelector(".iw").appendChild(box); loadHistory(s, box);
+  }
+  info.setContent(el); info.open({map, anchor:m});
+  if(map.getZoom()<14){ map.setZoom(14); } map.panTo({lat:s.lat,lng:s.lon});
+}
+function visible(){ return stations.filter(s => s.prices[fuel] && (!brand || s.brand===brand) && (!tierFilter || tierOf(s.prices[fuel])===tierFilter)); }
+
+function render(){
+  thresholds(); renderLegend();
+  const vis = visible(), keep = new Set(vis.map(s=>s.id));
+  clusterer.clearMarkers();
+  const ms = [];
+  for(const s of vis){
+    let m = markers.get(s.id);
+    if(!m){
+      m = new google.maps.Marker({position:{lat:s.lat,lng:s.lon}, title:`${s.brand} — ${s.address}`});
+      m.addListener("click", () => open(s));
+      markers.set(s.id, m);
+    }
+    m.price = s.prices[fuel]; m.setIcon(pin(m.price)); ms.push(m);
+  }
+  clusterer.addMarkers(ms);
+  renderList();
+}
+function renderList(){
+  const b = map.getBounds(); if(!b) return;
+  let vis = visible().filter(s => b.contains({lat:s.lat,lng:s.lon}));
+  const ref = me || {lat:map.getCenter().lat(), lon:map.getCenter().lng()};
+  vis.forEach(s => s._d = km(ref, s));
+  vis.sort(sortBy==="dist" ? (a,b)=>a._d-b._d : (a,b)=>a.prices[fuel]-b.prices[fuel] || a._d-b._d);
+  const ul = $("#list");
+  if(!vis.length){ ul.innerHTML = `<li class="empty">${t("none")}</li>`; return; }
+  ul.innerHTML = vis.slice(0,40).map(s=>`<li data-id="${s.id}"><span class="nm">${esc(s.brand||s.name)}</span><span class="ad">${esc(s.address)} · ${s._d.toFixed(1)} km</span><span class="pr" style="background:${color(s.prices[fuel])}">${fmt(s.prices[fuel])}</span></li>`).join("");
+}
+function clusterRenderer(){
+  return {render:({count, position, markers:ms}) => {
+    const lo = Math.min(...ms.map(m=>m.price).filter(Boolean));
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"><circle cx="26" cy="26" r="24" fill="${color(lo)}" fill-opacity=".92" stroke="#fff" stroke-width="2"/><text x="26" y="23" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#fff">${isFinite(lo)?lo.toFixed(1):""}</text><text x="26" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#fff">${count}</text></svg>`;
+    return new google.maps.Marker({position, zIndex:1000+count, icon:{url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg), scaledSize:new google.maps.Size(52,52), anchor:new google.maps.Point(26,26)}});
+  }};
+}
+
+async function load(){
+  const r = await fetch("/api/stations"); const j = await r.json();
+  stations = j.stations; meta = j; fillBrands(); renderStatus(); render();
+}
+const normPostal = v => { const c = String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,""); return /^[ABCEGHJ-NPRSTVXY]\d[A-Z]\d[A-Z]\d$/.test(c) ? c : null; };
+let pcMarker = null;
+function pcError(msg){ const e = $("#pcerr"); e.textContent = msg || ""; e.style.display = msg ? "block" : "none"; }
+function centroid(list){ return {lat:list.reduce((a,s)=>a+s.lat,0)/list.length, lon:list.reduce((a,s)=>a+s.lon,0)/list.length}; }
+// Resolve a postal code: exact station match, then the average of stations in the same
+// forward sortation area (first 3 chars), then Google's geocoder as a last resort.
+async function lookupPostal(code){
+  const exact = stations.filter(s => (s.postal||"").toUpperCase().replace(/\s/g,"") === code);
+  if(exact.length) return centroid(exact);
+  const fsa = stations.filter(s => (s.postal||"").toUpperCase().replace(/\s/g,"").slice(0,3) === code.slice(0,3));
+  if(fsa.length) return centroid(fsa);
+  try {
+    const {Geocoder} = await google.maps.importLibrary("geocoding");
+    const res = await new Geocoder().geocode({address: code.slice(0,3)+" "+code.slice(3), componentRestrictions:{country:"CA", administrativeArea:"QC"}});
+    const loc = res.results[0] && res.results[0].geometry.location;
+    if(loc) return {lat:loc.lat(), lon:loc.lng()};
+  } catch(e){}
+  return null;
+}
+async function searchPostal(raw){
+  pcError("");
+  const code = normPostal(raw);
+  if(!code){ pcError(t("pcInvalid")); return; }
+  const pos = await lookupPostal(code);
+  if(!pos){ pcError(t("pcNotFound")); return; }
+  me = pos;
+  $("#pc").value = code.slice(0,3)+" "+code.slice(3);
+  map.setCenter({lat:pos.lat, lng:pos.lon}); map.setZoom(13);
+  if(pcMarker) pcMarker.setMap(null);
+  pcMarker = new google.maps.Marker({map, position:{lat:pos.lat,lng:pos.lon}, zIndex:9999, title:$("#pc").value,
+    icon:{path:google.maps.SymbolPath.CIRCLE, scale:8, fillColor:"#0b63c5", fillOpacity:1, strokeColor:"#fff", strokeWeight:3}});
+  sortBy = "dist"; $("#sort").value = "dist"; renderList();
+}
+function locate(){
+  if(!navigator.geolocation || !window.isSecureContext){ pcError(t("geoInsecure")); return; }
+  pcError("");
+  navigator.geolocation.getCurrentPosition(p=>{
+    me = {lat:p.coords.latitude, lon:p.coords.longitude};
+    map.setCenter({lat:me.lat,lng:me.lon}); map.setZoom(12);
+    new google.maps.Marker({map, position:{lat:me.lat,lng:me.lon}, zIndex:9999,
+      icon:{path:google.maps.SymbolPath.CIRCLE, scale:8, fillColor:"#0b63c5", fillOpacity:1, strokeColor:"#fff", strokeWeight:3}});
+    sortBy="dist"; $("#sort").value="dist"; renderList();
+  }, err=>pcError(err.code===1 ? t("geoDenied") : t("geoFail")), {enableHighAccuracy:false, timeout:10000, maximumAge:300000});
+}
+
+window.initMap = function(){
+  map = new google.maps.Map($("#map"), {center:{lat:46.8139,lng:-71.2080}, zoom:9, mapTypeControl:false, streetViewControl:false, fullscreenControl:false, gestureHandling:"greedy"});
+  info = new google.maps.InfoWindow();
+  clusterer = new markerClusterer.MarkerClusterer({map, markers:[], renderer:clusterRenderer()});
+  const lg = $("#legend"); map.controls[google.maps.ControlPosition.TOP_RIGHT].push(lg); lg.style.display = "flex";
+  let idleT;
+  map.addListener("idle", () => { clearTimeout(idleT); idleT = setTimeout(() => {
+    const before = q.lo+","+q.hi; thresholds(); renderLegend();
+    if(before !== q.lo+","+q.hi) render(); else renderList();
+  }, 120); });
+  lg.addEventListener("click", e => {
+    const b = e.target.closest("button"); if(!b) return;
+    tierFilter = tierFilter === b.dataset.tier ? "" : b.dataset.tier;
+    render();
+  });
+  $("#fuel").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    fuel = b.dataset.fuel; document.querySelectorAll("#fuel button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+    fillBrands(); render();
+  });
+  $("#brand").addEventListener("change", e=>{ brand=e.target.value; render(); });
+  $("#sort").addEventListener("change", e=>{ sortBy=e.target.value; renderList(); });
+  $("#near").addEventListener("click", locate);
+  const dlg = $("#loyalty");
+  $("#loyalBtn").addEventListener("click", () => { renderLoyalty(); dlg.showModal(); });
+  $("#loyalClose").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("click", e => { if(e.target === dlg) dlg.close(); });
+  $("#pcform").addEventListener("submit", e=>{ e.preventDefault(); searchPostal($("#pc").value); });
+  $("#lang").addEventListener("click", ()=>{ lang = lang==="fr"?"en":"fr"; try{localStorage.setItem("lang",lang);}catch(e){} applyLang(); render(); });
+  $("#list").addEventListener("click", e=>{ const li=e.target.closest("li[data-id]"); if(li) open(stations[+li.dataset.id]); });
+  applyLang();
+  load().catch(()=>{ $("#status").textContent = "Erreur de chargement"; });
+  setInterval(()=>load().catch(()=>{}), 10*60*1000);
+};
+
+if(KEY){
+  const s = document.createElement("script");
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(KEY)}&callback=initMap&loading=async&language=${lang}&region=CA`;
+  s.async = true; document.head.appendChild(s);
+} else { $("#map").style.display="none"; $("#nokey").style.display="grid"; applyLang(); }
+</script>
+</body>
+</html>
