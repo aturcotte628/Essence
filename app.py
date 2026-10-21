@@ -43,6 +43,11 @@ def _price(raw):
 
 
 def parse_geojson(doc):
+    """GeoJSON feature collection -> flat station dicts (name, brand, address, lat/lon, prices).
+
+    Features without coordinates are skipped. `prices` maps fuel key (regular/super/diesel)
+    to cents per litre and only holds fuels that are available and pass the sanity check.
+    """
     out = []
     for f in doc.get("features", []):
         p = f.get("properties", {})
@@ -73,7 +78,8 @@ def parse_geojson(doc):
 
 
 def fetch_geojson():
-    r = requests.get(GEOJSON_URL, headers={"User-Agent": UA, "Accept-Encoding": "gzip"}, timeout=30)
+    """Download and decode the stations GeoJSON published by the Régie."""
+    r =requests.get(GEOJSON_URL, headers={"User-Agent": UA, "Accept-Encoding": "gzip"}, timeout=30)
     r.raise_for_status()
     raw = r.content
     if raw[:2] == b"\x1f\x8b":  # server sometimes hands the gzip through untouched
@@ -140,6 +146,10 @@ def record_history(stations, now=None):
 
 
 def refresh():
+    """Fetch fresh data (geojson, else xlsx), update the in-memory state, history and disk cache.
+
+    Raises if the data looks truncated so the previous good data stays in place.
+    """
     try:
         doc = fetch_geojson()
         source = "geojson"
@@ -175,6 +185,7 @@ def refresh():
 
 
 def _loop():
+    """Background thread: refresh every REFRESH_SECONDS, recording any error for /healthz."""
     while True:
         time.sleep(REFRESH_SECONDS)
         try:
@@ -186,6 +197,7 @@ def _loop():
 
 
 def _boot():
+    """On startup: load the disk cache so the map works at once, refresh, start the update thread."""
     try:
         with open(CACHE, encoding="utf-8") as fh:
             _state.update(json.load(fh))
@@ -204,6 +216,7 @@ _boot()
 
 @app.before_request
 def force_https():
+    """Redirect plain-HTTP visitors to HTTPS (health checks are exempt)."""
     # Cloudflare terminates TLS and talks plain HTTP to nginx; CF-Visitor carries the real scheme.
     if '"scheme":"http"' in request.headers.get("CF-Visitor", "").replace(" ", "") and request.path != "/healthz":
         return redirect("https://" + request.host + request.full_path.rstrip("?"), 301)
@@ -211,11 +224,13 @@ def force_https():
 
 @app.route("/")
 def index():
+    """Map page; the Google Maps key is injected from the GOOGLE_MAPS_KEY environment variable."""
     return render_template("index.html", maps_key=os.environ.get("GOOGLE_MAPS_KEY", ""))
 
 
 @app.route("/api/stations")
 def stations():
+    """All stations as JSON; ETag lets clients get a 304 until the source data changes."""
     with _lock:
         body = {
             "generated_at": _state["generated_at"],
@@ -262,6 +277,7 @@ def history():
 
 @app.route("/healthz")
 def healthz():
+    """Liveness check: 200 if stations are loaded and data is under 4 refresh cycles old, else 503."""
     with _lock:
         age = None
         if _state["fetched_at"]:
